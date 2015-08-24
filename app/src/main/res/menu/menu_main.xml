@@ -1,6 +1,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
+    <item android:id="@+id/action_btnOn" android:title="@string/action_btnOn"
+        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:id="@+id/action_establishCnt" android:title="@string/action_connect"
+        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:id="@+id/action_btnOff" android:title="@string/action_btnOff"
         android:orderInCategory="100" app:showAsAction="never" />
 </menu>
