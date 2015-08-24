@@ -1,22 +1,40 @@
 package me.josuerojas.homevoicecontrol;
 
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
+import android.os.ParcelUuid;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Set;
 
 
 public class MainActivity extends ActionBarActivity {
 
+    private BluetoothAdapter myBluetoothAdapter;
+    private OutputStream outputStream;
+    private InputStream inStream;
+    private ArrayAdapter<String> BTArrayAdapter;
+    private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_CODE = 1234;
     TextToSpeech tts;
 
@@ -29,14 +47,18 @@ public class MainActivity extends ActionBarActivity {
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-                if(status != TextToSpeech.ERROR) {
-                   // tts.setLanguage(Locale.getDefault());
+                if (status != TextToSpeech.ERROR) {
+                    // tts.setLanguage(Locale.getDefault());
                 }
             }
         });
+        myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (myBluetoothAdapter == null) {
+            Toast.makeText(getApplicationContext(), "Your device does not support Bluetooth",
+                    Toast.LENGTH_LONG).show();
+        }
 
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -47,11 +69,20 @@ public class MainActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_settings) {
-            return true;
+        switch (item.getItemId()) {
+            case R.id.action_btnOn:
+                onBT();
+                return true;
+            case R.id.action_btnOff:
+                offBT();
+                return true;
+            case R.id.action_establishCnt:
+                establishConnection();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
     }
 
 
@@ -140,6 +171,77 @@ public class MainActivity extends ActionBarActivity {
             retVal = 'v';
         }
         return retVal;
+    }
+
+    public void onBT(){
+        if (!myBluetoothAdapter.isEnabled()) {
+            Intent turnOnIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(turnOnIntent, REQUEST_ENABLE_BT);
+            Toast.makeText(getApplicationContext(),"Bluetooth turned on" ,
+                    Toast.LENGTH_LONG).show();
+        } else{
+            Toast.makeText(getApplicationContext(),"Bluetooth is already on",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void offBT(){
+        myBluetoothAdapter.disable();
+        Toast.makeText(getApplicationContext(),"Bluetooth turned off",
+                Toast.LENGTH_LONG).show();
+    }
+
+    public void establishConnection(){
+        if (myBluetoothAdapter.isEnabled()) {
+            Set<BluetoothDevice> bondedDevices = myBluetoothAdapter.getBondedDevices();
+
+            if(bondedDevices.size() > 0){
+                Log.e("error", String.valueOf(bondedDevices));
+                BluetoothDevice[] devices = (BluetoothDevice[]) bondedDevices.toArray();
+                BluetoothDevice device = devices[0];
+                ParcelUuid[] uuids = device.getUuids();
+                BluetoothSocket socket = null;
+                try {
+                    socket = device.createRfcommSocketToServiceRecord(uuids[0].getUuid());
+                    socket.connect();
+                    outputStream = socket.getOutputStream();
+                    inStream = socket.getInputStream();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            Toast.makeText(getApplicationContext(),"The devices has not been paired yet.",
+                    Toast.LENGTH_LONG).show();
+        }else{
+            Toast.makeText(getApplicationContext(),"Bluetooth is disabled.",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void write(String s) throws IOException {
+        outputStream.write(s.getBytes());
+    }
+
+    final BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                BTArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                BTArrayAdapter.notifyDataSetChanged();
+            }
+        }
+    };
+
+    public void find() {
+        if (myBluetoothAdapter.isDiscovering()) {
+            myBluetoothAdapter.cancelDiscovery();
+        }
+        else {
+            BTArrayAdapter.clear();
+            myBluetoothAdapter.startDiscovery();
+            registerReceiver(bReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+        }
     }
 
 }
