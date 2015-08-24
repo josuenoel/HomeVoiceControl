@@ -111,7 +111,7 @@ public class MainActivity extends ActionBarActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    // retVal puede tener el valor 'a' si corresponde a un comando de activar, valor 'd' si corresponde a desactivar y valor de 'i' si esta indefinido
+    // retVal puede tener el valor 'a' si corresponde a un comando de a|ctivar, valor 'd' si corresponde a desactivar y valor de 'i' si esta indefinido
     protected char commandFirstLevel(String command){
         char retVal = 'i';
         if (command.matches("^.*?(apagar|apaga|apagá|desactivar|desactiva|desactivá|cerrar|cierra|cerrá|oscurecer|oscurece|oscurecé|quitar|quita|quitá|no trabajar|no trabaje|" +
